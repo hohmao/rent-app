@@ -4,135 +4,244 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function Home() {
+
   const [services, setServices] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
+
+  const [telegramUser, setTelegramUser] = useState<any>(null);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("");
+
+
 
   useEffect(() => {
-    loadServices();
-  }, []);
 
-  async function loadServices() {
+    loadServices()
+
+    const tg = (window as any).Telegram?.WebApp
+
+    if(tg?.initDataUnsafe?.user){
+      setTelegramUser(tg.initDataUnsafe.user)
+    }
+
+  },[])
+
+
+
+  async function loadServices(){
+
     const { data } = await supabase
       .from("services")
       .select("*")
-      .order("id", { ascending: false });
+      .order("id",{ascending:false})
 
-    if (data) setServices(data);
+    if(data){
+      setServices(data)
+    }
+
   }
 
-  async function addService() {
-    if (!title || !description || !price) return;
 
-    await supabase.from("services").insert([
-      {
+
+  async function addService(){
+
+    if(!title || !description || !price) return
+
+    await supabase
+      .from("services")
+      .insert([{
+
+        telegram_id: telegramUser?.id,
+        username: telegramUser?.username,
+
         title,
         description,
         price: Number(price),
-      },
-    ]);
+        category,
+        rating:5
 
-    setTitle("");
-    setDescription("");
-    setPrice("");
+      }])
 
-    setShowModal(false);
+    setTitle("")
+    setDescription("")
+    setPrice("")
+    setCategory("")
 
-    loadServices();
+    setShowModal(false)
+
+    loadServices()
+
   }
 
-  return (
-    <div style={{ padding: 20 }}>
+
+
+  async function createOrder(service:any){
+
+    const tg = (window as any).Telegram.WebApp
+    const user = tg.initDataUnsafe.user
+
+    const { data } = await supabase
+      .from("orders")
+      .insert([{
+
+        client_id: user.id,
+        specialist_id: service.telegram_id,
+        service_id: service.id,
+        price: service.price,
+        status: "pending"
+
+      }])
+      .select()
+      .single()
+
+    if(data){
+      window.location.href = "/chat/" + data.id
+    }
+
+  }
+
+
+
+  return(
+
+    <div style={{padding:20}}>
+
       <h1>Специалисты</h1>
 
+
+
       <button
-        onClick={() => setShowModal(true)}
-        style={{ marginBottom: 20 }}
+        onClick={()=>setShowModal(true)}
+        style={{marginBottom:20}}
       >
         + Добавить услугу
       </button>
 
-      {services.map((service) => (
+
+
+      {services.map(service=>(
+
         <div
           key={service.id}
           style={{
-            border: "1px solid #ddd",
-            borderRadius: 10,
-            padding: 15,
-            marginBottom: 15,
+            border:"1px solid #ddd",
+            borderRadius:10,
+            padding:15,
+            marginBottom:15
           }}
         >
+
           <h3>{service.title}</h3>
 
           <p>{service.description}</p>
 
+          <p>Категория: {service.category}</p>
+
+          <p>⭐ {service.rating}</p>
+
           <b>{service.price} ⭐</b>
 
-          <div style={{ marginTop: 10 }}>
-            <button>Арендовать</button>
+          <div style={{marginTop:10}}>
+
+            <button
+              onClick={()=>createOrder(service)}
+            >
+              Арендовать
+            </button>
+
           </div>
+
         </div>
+
       ))}
 
+
+
       {showModal && (
+
         <div
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
+            position:"fixed",
+            inset:0,
+            background:"rgba(0,0,0,0.5)",
+            display:"flex",
+            justifyContent:"center",
+            alignItems:"center"
           }}
         >
+
           <div
             style={{
-              background: "white",
-              padding: 20,
-              borderRadius: 10,
-              width: 300,
+              background:"white",
+              padding:20,
+              borderRadius:10,
+              width:300
             }}
           >
-            <h3>Добавить услугу</h3>
+
+            <h3>Новая услуга</h3>
+
+
 
             <input
               placeholder="Название"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              style={{ width: "100%", marginBottom: 10 }}
+              onChange={(e)=>setTitle(e.target.value)}
             />
+
+            <br/>
+
 
             <textarea
               placeholder="Описание"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              style={{ width: "100%", marginBottom: 10 }}
+              onChange={(e)=>setDescription(e.target.value)}
             />
+
+            <br/>
+
+
+            <input
+              placeholder="Категория"
+              value={category}
+              onChange={(e)=>setCategory(e.target.value)}
+            />
+
+            <br/>
+
 
             <input
               placeholder="Цена"
               value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              style={{ width: "100%", marginBottom: 10 }}
+              onChange={(e)=>setPrice(e.target.value)}
             />
 
-            <button onClick={addService}>Добавить</button>
+            <br/>
+
+
+            <button onClick={addService}>
+              Добавить
+            </button>
+
 
             <button
-              onClick={() => setShowModal(false)}
-              style={{ marginLeft: 10 }}
+              onClick={()=>setShowModal(false)}
+              style={{marginLeft:10}}
             >
               Отмена
             </button>
+
           </div>
+
         </div>
+
       )}
+
     </div>
-  );
+
+  )
+
 }
