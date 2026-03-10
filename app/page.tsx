@@ -2,251 +2,109 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
 
-export default function Home(){
+export default function HomePage(){
 
-const [services,setServices] = useState<any[]>([])
-const [showModal,setShowModal] = useState(false)
+  const [services,setServices] = useState<any[]>([])
+  const router = useRouter()
 
-const [title,setTitle] = useState("")
-const [description,setDescription] = useState("")
-const [price,setPrice] = useState("")
-const [category,setCategory] = useState("")
+  useEffect(()=>{
+    loadServices()
+    saveUser()
+  },[])
 
-const [userId,setUserId] = useState<number>(0)
+  async function saveUser(){
 
+    const tg:any = window.Telegram?.WebApp
+    const user = tg?.initDataUnsafe?.user
 
+    if(!user) return
 
-useEffect(()=>{
+    await supabase
+      .from("users")
+      .upsert({
+        id: user.id,
+        username: user.username,
+        first_name: user.first_name
+      })
 
-loadServices()
+  }
 
-const tg = (window as any).Telegram?.WebApp
+  async function loadServices(){
 
-if(tg?.initDataUnsafe?.user){
-setUserId(tg.initDataUnsafe.user.id)
-}else{
-setUserId(999999) // dev режим
-}
+    const {data} = await supabase
+      .from("services")
+      .select("*")
 
-},[])
+    if(data) setServices(data)
 
+  }
 
+  async function rent(service:any){
 
-async function loadServices(){
+    const tg:any = window.Telegram?.WebApp
+    const user = tg?.initDataUnsafe?.user
 
-const { data,error } = await supabase
-.from("services")
-.select("*")
-.order("id",{ascending:false})
+    if(!user){
+      alert("Ошибка Telegram")
+      return
+    }
 
-if(error){
-console.log(error)
-return
-}
+    const {data,error} = await supabase
+      .from("orders")
+      .insert([
+        {
+          service_id: service.id,
+          client_id: user.id,
+          price: service.price,
+          status: "pending"
+        }
+      ])
+      .select()
+      .single()
 
-if(data){
-setServices(data)
-}
+    if(error){
+      alert("Ошибка создания заказа")
+      return
+    }
 
-}
+    router.push(`/chat/${data.id}`)
 
+  }
 
+  return(
 
-async function addService(){
+    <div style={{padding:20}}>
 
-if(!title || !description || !price) return
+      <h2>Специалисты</h2>
 
-const { error } = await supabase
-.from("services")
-.insert([{
+      {services.map(service=>(
 
-telegram_id:userId,
-title:title,
-description:description,
-price:Number(price),
-category:category,
-rating:5
+        <div
+          key={service.id}
+          style={{
+            border:"1px solid #ccc",
+            padding:15,
+            marginBottom:10
+          }}
+        >
 
-}])
+          <h3>{service.title}</h3>
+          <p>{service.description}</p>
 
-if(error){
-console.log(error)
-alert("Ошибка добавления услуги")
-return
-}
+          <p>Цена: {service.price}</p>
 
-setTitle("")
-setDescription("")
-setPrice("")
-setCategory("")
+          <button onClick={()=>rent(service)}>
+            Арендовать
+          </button>
 
-setShowModal(false)
+        </div>
 
-loadServices()
+      ))}
 
-}
+    </div>
 
-
-
-async function createOrder(service:any){
-
-const priceValue = Number(service.price)
-
-const { data,error } = await supabase
-.from("orders")
-.insert([{
-
-client_id:userId,
-specialist_id:service.telegram_id,
-service_id:service.id,
-price:priceValue,
-status:"pending"
-
-}])
-.select()
-.single()
-
-if(error){
-console.log("ORDER ERROR:",error)
-alert("Ошибка создания заказа")
-return
-}
-
-if(data){
-window.location.href="/chat/"+data.id
-}
-
-}
-
-
-
-return(
-
-<div style={{padding:20}}>
-
-<h1>Специалисты</h1>
-
-<button
-onClick={()=>setShowModal(true)}
-style={{marginBottom:20}}
->
-+ Добавить услугу
-</button>
-
-
-
-{services.map(service=>(
-
-<div
-key={service.id}
-style={{
-border:"1px solid #ddd",
-borderRadius:10,
-padding:15,
-marginBottom:15
-}}
->
-
-<h3>{service.title}</h3>
-
-<p>{service.description}</p>
-
-<p>Категория: {service.category}</p>
-
-<p>⭐ {service.rating}</p>
-
-<b>{service.price} ⭐</b>
-
-<div style={{marginTop:10}}>
-
-<button onClick={()=>createOrder(service)}>
-Арендовать
-</button>
-
-</div>
-
-</div>
-
-))}
-
-
-
-{showModal && (
-
-<div
-style={{
-position:"fixed",
-inset:0,
-background:"rgba(0,0,0,0.5)",
-display:"flex",
-justifyContent:"center",
-alignItems:"center"
-}}
->
-
-<div
-style={{
-background:"white",
-padding:20,
-borderRadius:10,
-width:300
-}}
->
-
-<h3>Новая услуга</h3>
-
-<input
-placeholder="Название"
-value={title}
-onChange={(e)=>setTitle(e.target.value)}
-/>
-
-<br/>
-
-<textarea
-placeholder="Описание"
-value={description}
-onChange={(e)=>setDescription(e.target.value)}
-/>
-
-<br/>
-
-<input
-placeholder="Категория"
-value={category}
-onChange={(e)=>setCategory(e.target.value)}
-/>
-
-<br/>
-
-<input
-placeholder="Цена"
-value={price}
-onChange={(e)=>setPrice(e.target.value)}
-/>
-
-<br/>
-
-<button onClick={addService}>
-Добавить
-</button>
-
-<button
-onClick={()=>setShowModal(false)}
-style={{marginLeft:10}}
->
-Отмена
-</button>
-
-</div>
-
-</div>
-
-)}
-
-</div>
-
-)
+  )
 
 }
