@@ -54,8 +54,8 @@ export default function Home() {
       .from("services")
       .insert([{
 
-        telegram_id: telegramUser?.id,
-        username: telegramUser?.username,
+        telegram_id: telegramUser?.id || 0,
+        username: telegramUser?.username || "unknown",
 
         title,
         description,
@@ -80,14 +80,22 @@ export default function Home() {
 
   async function createOrder(service:any){
 
-    const tg = (window as any).Telegram.WebApp
-    const user = tg.initDataUnsafe.user
+    const tg = (window as any).Telegram?.WebApp
 
-    const { data } = await supabase
+    let userId = 0
+
+    if(tg?.initDataUnsafe?.user){
+      userId = tg.initDataUnsafe.user.id
+    }else{
+      alert("Открой приложение внутри Telegram")
+      return
+    }
+
+    const { data, error } = await supabase
       .from("orders")
       .insert([{
 
-        client_id: user.id,
+        client_id: userId,
         specialist_id: service.telegram_id,
         service_id: service.id,
         price: service.price,
@@ -96,6 +104,12 @@ export default function Home() {
       }])
       .select()
       .single()
+
+    if(error){
+      console.log(error)
+      alert("Ошибка создания заказа")
+      return
+    }
 
     if(data){
       window.location.href = "/chat/" + data.id
