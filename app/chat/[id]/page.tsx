@@ -1,158 +1,139 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useState } from "react"
+import { supabase } from "@/lib/supabase"
 
-export default function Chat({ params }: any) {
+export default function Chat({ params }: any){
 
-  const orderId = params.id
+const orderId = params.id
 
-  const [messages, setMessages] = useState<any[]>([])
-  const [text, setText] = useState("")
-  const [user, setUser] = useState<any>(null)
+const [messages,setMessages] = useState<any[]>([])
+const [text,setText] = useState("")
 
-
-
-  useEffect(() => {
-
-    const tg = (window as any).Telegram?.WebApp
-
-    if(tg?.initDataUnsafe?.user){
-      setUser(tg.initDataUnsafe.user)
-    }
-
-    loadMessages()
-
-    subscribeRealtime()
-
-  },[])
+const tg = (window as any).Telegram?.WebApp
+const user = tg?.initDataUnsafe?.user
 
 
 
-  async function loadMessages(){
+useEffect(()=>{
 
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("order_id",orderId)
-      .order("created_at",{ascending:true})
+loadMessages()
 
-    if(data){
-      setMessages(data)
-    }
+const interval = setInterval(loadMessages,2000)
 
-  }
+return ()=>clearInterval(interval)
+
+},[])
 
 
 
-  function subscribeRealtime(){
+async function loadMessages(){
 
-    supabase
-      .channel("chat-"+orderId)
-      .on(
-        "postgres_changes",
-        {
-          event:"INSERT",
-          schema:"public",
-          table:"messages",
-          filter:`order_id=eq.${orderId}`
-        },
-        (payload:any)=>{
+const { data } = await supabase
+.from("messages")
+.select("*")
+.eq("order_id",orderId)
+.order("created_at",{ascending:true})
 
-          setMessages((prev)=>[...prev,payload.new])
+if(data){
+setMessages(data)
+}
 
-        }
-      )
-      .subscribe()
-
-  }
+}
 
 
 
-  async function sendMessage(){
+async function sendMessage(){
 
-    if(!text) return
+if(!text) return
 
-    await supabase
-      .from("messages")
-      .insert([{
-        order_id: orderId,
-        sender_id: user?.id,
-        text
-      }])
+await supabase
+.from("messages")
+.insert([{
 
-    setText("")
+order_id: orderId,
+sender_id: user?.id || 0,
+text: text
 
-  }
+}])
 
+setText("")
 
+loadMessages()
 
-  return(
-
-    <div style={{padding:20}}>
-
-      <h2>Чат заказа</h2>
+}
 
 
 
-      <div style={{
-        border:"1px solid #ddd",
-        padding:10,
-        height:400,
-        overflowY:"scroll",
-        marginBottom:10
-      }}>
+return(
 
-        {messages.map((m)=>(
+<div style={{padding:20}}>
 
-          <div
-            key={m.id}
-            style={{
-              marginBottom:10,
-              textAlign: m.sender_id === user?.id ? "right" : "left"
-            }}
-          >
+<h2>Чат заказа #{orderId}</h2>
 
-            <span
-              style={{
-                background: m.sender_id === user?.id ? "#2AABEE" : "#eee",
-                color: m.sender_id === user?.id ? "white" : "black",
-                padding:"6px 10px",
-                borderRadius:10,
-                display:"inline-block"
-              }}
-            >
-              {m.text}
-            </span>
+<div
+style={{
+border:"1px solid #ddd",
+height:400,
+overflow:"auto",
+padding:10,
+marginBottom:10
+}}
+>
 
-          </div>
+{messages.map((m)=>{
 
-        ))}
+const isMine = m.sender_id === user?.id
 
-      </div>
+return(
 
+<div
+key={m.id}
+style={{
+textAlign: isMine ? "right":"left",
+marginBottom:10
+}}
+>
 
+<span
+style={{
+background:isMine ? "#0088ff":"#eee",
+color:isMine ? "white":"black",
+padding:8,
+borderRadius:10,
+display:"inline-block"
+}}
+>
 
-      <input
-        value={text}
-        onChange={(e)=>setText(e.target.value)}
-        placeholder="Сообщение..."
-        style={{width:"70%",padding:8}}
-      />
+{m.text}
 
+</span>
 
+</div>
 
-      <button
-        onClick={sendMessage}
-        style={{marginLeft:10,padding:8}}
-      >
-        Отправить
-      </button>
+)
 
+})}
 
+</div>
 
-    </div>
+<div style={{display:"flex",gap:10}}>
 
-  )
+<input
+value={text}
+onChange={(e)=>setText(e.target.value)}
+style={{flex:1}}
+placeholder="Сообщение..."
+/>
+
+<button onClick={sendMessage}>
+Отправить
+</button>
+
+</div>
+
+</div>
+
+)
 
 }
