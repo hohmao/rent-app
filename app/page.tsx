@@ -5,30 +5,81 @@ import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const [services, setServices] = useState<any[]>([]);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
 
   useEffect(() => {
     loadServices();
   }, []);
 
   async function loadServices() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("services")
       .select("*")
       .order("id", { ascending: false });
 
-    if (error) {
-      console.log(error);
-      return;
-    }
+    if (data) setServices(data);
+  }
 
-    setServices(data || []);
+  async function addService() {
+    if (!title || !description || !price) return;
+
+    await supabase.from("services").insert([
+      {
+        title,
+        description,
+        price: Number(price),
+      },
+    ]);
+
+    setTitle("");
+    setDescription("");
+    setPrice("");
+
+    loadServices();
   }
 
   return (
     <div style={{ padding: 20 }}>
       <h1>Специалисты</h1>
 
-      <button style={{ marginBottom: 20 }}>+ Добавить услугу</button>
+      <div
+        style={{
+          border: "1px solid #ddd",
+          padding: 15,
+          borderRadius: 10,
+          marginBottom: 20,
+        }}
+      >
+        <h3>Добавить услугу</h3>
+
+        <input
+          placeholder="Название"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+
+        <br />
+
+        <textarea
+          placeholder="Описание"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+
+        <br />
+
+        <input
+          placeholder="Цена"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+        />
+
+        <br />
+
+        <button onClick={addService}>Добавить</button>
+      </div>
 
       {services.map((service) => (
         <div
