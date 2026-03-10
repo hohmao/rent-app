@@ -26,7 +26,7 @@ const tg = (window as any).Telegram?.WebApp
 if(tg?.initDataUnsafe?.user){
 setUserId(tg.initDataUnsafe.user.id)
 }else{
-setUserId(999999) // dev режим для браузера
+setUserId(999999) // dev режим
 }
 
 },[])
@@ -35,10 +35,15 @@ setUserId(999999) // dev режим для браузера
 
 async function loadServices(){
 
-const { data } = await supabase
+const { data,error } = await supabase
 .from("services")
 .select("*")
 .order("id",{ascending:false})
+
+if(error){
+console.log(error)
+return
+}
 
 if(data){
 setServices(data)
@@ -52,18 +57,24 @@ async function addService(){
 
 if(!title || !description || !price) return
 
-await supabase
+const { error } = await supabase
 .from("services")
 .insert([{
 
 telegram_id:userId,
-title,
-description,
+title:title,
+description:description,
 price:Number(price),
-category,
+category:category,
 rating:5
 
 }])
+
+if(error){
+console.log(error)
+alert("Ошибка добавления услуги")
+return
+}
 
 setTitle("")
 setDescription("")
@@ -80,14 +91,16 @@ loadServices()
 
 async function createOrder(service:any){
 
-const { data, error } = await supabase
+const priceValue = Number(service.price)
+
+const { data,error } = await supabase
 .from("orders")
 .insert([{
 
 client_id:userId,
 specialist_id:service.telegram_id,
 service_id:service.id,
-price:service.price,
+price:priceValue,
 status:"pending"
 
 }])
@@ -95,7 +108,7 @@ status:"pending"
 .single()
 
 if(error){
-console.log(error)
+console.log("ORDER ERROR:",error)
 alert("Ошибка создания заказа")
 return
 }
