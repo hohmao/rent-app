@@ -12,9 +12,10 @@ export default function ChatPage(){
   const [messages,setMessages] = useState<any[]>([])
   const [text,setText] = useState("")
 
-  const tg:any = typeof window !== "undefined"
-    ? window.Telegram?.WebApp
-    : null
+  const tg:any =
+    typeof window !== "undefined"
+      ? (window as any).Telegram?.WebApp
+      : null
 
   const userId = tg?.initDataUnsafe?.user?.id
 
@@ -31,7 +32,7 @@ export default function ChatPage(){
           schema:"public",
           table:"messages"
         },
-        payload=>{
+        (payload:any)=>{
           if(payload.new.order_id === orderId){
             setMessages(prev=>[...prev,payload.new])
           }
@@ -39,7 +40,7 @@ export default function ChatPage(){
       )
       .subscribe()
 
-    return()=>{
+    return ()=>{
       supabase.removeChannel(channel)
     }
 
@@ -91,7 +92,7 @@ export default function ChatPage(){
         }}
       >
 
-        {messages.map(m=>(
+        {messages.map((m:any)=>(
           <div key={m.id}>
             <b>{m.sender_id}</b>: {m.message}
           </div>

@@ -16,7 +16,7 @@ export default function HomePage(){
 
   async function saveUser(){
 
-    const tg:any = window.Telegram?.WebApp
+    const tg:any = (window as any).Telegram?.WebApp
     const user = tg?.initDataUnsafe?.user
 
     if(!user) return
@@ -43,7 +43,7 @@ export default function HomePage(){
 
   async function rent(service:any){
 
-    const tg:any = window.Telegram?.WebApp
+    const tg:any = (window as any).Telegram?.WebApp
     const user = tg?.initDataUnsafe?.user
 
     if(!user){
