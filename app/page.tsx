@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const [services, setServices] = useState<any[]>([]);
+  const [showModal, setShowModal] = useState(false);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -37,6 +39,8 @@ export default function Home() {
     setDescription("");
     setPrice("");
 
+    setShowModal(false);
+
     loadServices();
   }
 
@@ -44,42 +48,12 @@ export default function Home() {
     <div style={{ padding: 20 }}>
       <h1>Специалисты</h1>
 
-      <div
-        style={{
-          border: "1px solid #ddd",
-          padding: 15,
-          borderRadius: 10,
-          marginBottom: 20,
-        }}
+      <button
+        onClick={() => setShowModal(true)}
+        style={{ marginBottom: 20 }}
       >
-        <h3>Добавить услугу</h3>
-
-        <input
-          placeholder="Название"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-
-        <br />
-
-        <textarea
-          placeholder="Описание"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-
-        <br />
-
-        <input
-          placeholder="Цена"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-        />
-
-        <br />
-
-        <button onClick={addService}>Добавить</button>
-      </div>
+        + Добавить услугу
+      </button>
 
       {services.map((service) => (
         <div
@@ -102,6 +76,63 @@ export default function Home() {
           </div>
         </div>
       ))}
+
+      {showModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: 20,
+              borderRadius: 10,
+              width: 300,
+            }}
+          >
+            <h3>Добавить услугу</h3>
+
+            <input
+              placeholder="Название"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              style={{ width: "100%", marginBottom: 10 }}
+            />
+
+            <textarea
+              placeholder="Описание"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={{ width: "100%", marginBottom: 10 }}
+            />
+
+            <input
+              placeholder="Цена"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              style={{ width: "100%", marginBottom: 10 }}
+            />
+
+            <button onClick={addService}>Добавить</button>
+
+            <button
+              onClick={() => setShowModal(false)}
+              style={{ marginLeft: 10 }}
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
