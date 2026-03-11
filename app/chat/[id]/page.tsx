@@ -76,6 +76,28 @@ export default function ChatPage(){
 
   }
 
+  async function acceptOrder(){
+
+    await supabase
+      .from("orders")
+      .update({
+        status:"active"
+      })
+      .eq("id",orderId)
+
+  }
+
+  async function completeOrder(){
+
+    await supabase
+      .from("orders")
+      .update({
+        status:"completed"
+      })
+      .eq("id",orderId)
+
+  }
+
   return(
 
     <div style={{padding:20}}>
@@ -88,7 +110,7 @@ export default function ChatPage(){
           height:400,
           overflow:"auto",
           padding:10,
-          marginBottom:10
+          marginBottom:20
         }}
       >
 
@@ -97,6 +119,23 @@ export default function ChatPage(){
             <b>{m.sender_id}</b>: {m.message}
           </div>
         ))}
+
+      </div>
+
+      <div style={{marginBottom:20}}>
+
+        <button
+          onClick={acceptOrder}
+          style={{marginRight:10}}
+        >
+          Принять заказ
+        </button>
+
+        <button
+          onClick={completeOrder}
+        >
+          Завершить заказ
+        </button>
 
       </div>
 
