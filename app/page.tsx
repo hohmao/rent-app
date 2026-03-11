@@ -101,7 +101,11 @@ export default function HomePage() {
           }}
         >
 
-          <h3>{service.title}</h3>
+          <h3>
+  <a href={`/service/${service.id}`}>
+    {service.title}
+  </a>
+</h3>
 
           <p>{service.description}</p>
 
