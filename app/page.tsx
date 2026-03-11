@@ -2,106 +2,102 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
 
-export default function HomePage(){
+export default function HomePage() {
 
-  const [services,setServices] = useState<any[]>([])
-  const router = useRouter()
+  const [services, setServices] = useState<any[]>([])
 
-  useEffect(()=>{
+  useEffect(() => {
     loadServices()
-    saveUser()
-  },[])
+  }, [])
 
-  async function saveUser(){
+  async function loadServices() {
 
-    const tg:any = (window as any).Telegram?.WebApp
-    tg?.ready()
-
-    const user = tg?.initDataUnsafe?.user
-
-    if(!user) return
-
-    await supabase
-      .from("users")
-      .upsert({
-        id: user.id,
-        username: user.username,
-        first_name: user.first_name
-      })
-
-  }
-
-  async function loadServices(){
-
-    const {data} = await supabase
+    const { data } = await supabase
       .from("services")
       .select("*")
 
-    if(data) setServices(data)
+    if (!data) return
+
+    const servicesWithRating = await Promise.all(
+
+      data.map(async (service) => {
+
+        const { data: reviews } = await supabase
+          .from("reviews")
+          .select("rating")
+          .eq("service_id", service.id)
+
+        let rating = 0
+        let count = 0
+
+        if (reviews && reviews.length > 0) {
+
+          const sum = reviews.reduce((acc, r) => acc + r.rating, 0)
+
+          rating = sum / reviews.length
+          count = reviews.length
+
+        }
+
+        return {
+          ...service,
+          rating,
+          reviewsCount: count
+        }
+
+      })
+
+    )
+
+    setServices(servicesWithRating)
 
   }
 
-  async function rent(service:any){
+  async function rentService(serviceId: number) {
 
-    const tg:any = (window as any).Telegram?.WebApp
+    const tg: any = (window as any).Telegram?.WebApp
     const user = tg?.initDataUnsafe?.user
 
-    if(!user){
+    if (!user) {
       alert("Ошибка Telegram")
       return
     }
 
-    const {data,error} = await supabase
+    const { data } = await supabase
       .from("orders")
-      .insert([
-        {
-          service_id: service.id,
-          client_id: user.id,
-          price: service.price,
-          status: "pending"
-        }
-      ])
+      .insert({
+        service_id: serviceId,
+        client_id: user.id,
+        status: "open"
+      })
       .select()
       .single()
 
-    if(error){
+    if (!data) {
       alert("Ошибка создания заказа")
       return
     }
 
-    router.push(`/chat/${data.id}`)
+    window.location.href = `/chat/${data.id}`
 
   }
 
-  return(
+  return (
 
-    <div style={{padding:20}}>
+    <div style={{ padding: 20 }}>
 
       <h2>Специалисты</h2>
 
-      <button
-        style={{
-          marginBottom:20,
-          padding:10,
-          background:"#000",
-          color:"#fff",
-          borderRadius:8
-        }}
-        onClick={()=>router.push("/orders")}
-      >
-        Мои заказы
-      </button>
-
-      {services.map(service=>(
+      {services.map((service) => (
 
         <div
           key={service.id}
           style={{
-            border:"1px solid #ccc",
-            padding:15,
-            marginBottom:10
+            border: "1px solid #ccc",
+            padding: 15,
+            marginTop: 10,
+            borderRadius: 10
           }}
         >
 
@@ -111,7 +107,17 @@ export default function HomePage(){
 
           <p>Цена: {service.price}</p>
 
-          <button onClick={()=>rent(service)}>
+          <p>
+            ⭐ {service.rating.toFixed(1)} ({service.reviewsCount} отзывов)
+          </p>
+
+          <button
+            onClick={() => rentService(service.id)}
+            style={{
+              padding: 10,
+              marginTop: 10
+            }}
+          >
             Арендовать
           </button>
 
