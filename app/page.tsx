@@ -17,6 +17,8 @@ export default function HomePage(){
   async function saveUser(){
 
     const tg:any = (window as any).Telegram?.WebApp
+    tg?.ready()
+
     const user = tg?.initDataUnsafe?.user
 
     if(!user) return
@@ -79,6 +81,19 @@ export default function HomePage(){
 
       <h2>Специалисты</h2>
 
+      <button
+        style={{
+          marginBottom:20,
+          padding:10,
+          background:"#000",
+          color:"#fff",
+          borderRadius:8
+        }}
+        onClick={()=>router.push("/orders")}
+      >
+        Мои заказы
+      </button>
+
       {services.map(service=>(
 
         <div
@@ -91,6 +106,7 @@ export default function HomePage(){
         >
 
           <h3>{service.title}</h3>
+
           <p>{service.description}</p>
 
           <p>Цена: {service.price}</p>
